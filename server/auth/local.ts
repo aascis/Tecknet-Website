@@ -169,16 +169,28 @@ export async function getPendingCustomers(req: Request, res: Response) {
 // Middleware to check if user is authenticated
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.session && req.session.isAuthenticated) {
-    return next();
+    // Make sure we have either a local user or an AD user
+    if (req.session.user || req.session.adUser) {
+      return next();
+    }
   }
   return res.status(401).json({ message: "Not authenticated" });
 }
 
 // Middleware to check if user is admin
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.session && req.session.user && req.session.user.role === 'admin') {
-    return next();
+  if (req.session) {
+    // Check if local user is admin
+    if (req.session.user && req.session.user.role === 'admin') {
+      return next();
+    }
+    
+    // Check if AD user is admin
+    if (req.session.adUser && req.session.adUser.role === 'admin') {
+      return next();
+    }
   }
+  
   return res.status(403).json({ message: "Not authorized" });
 }
 
