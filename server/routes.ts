@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as localAuth from "./auth/local";
 import * as adAuth from "./auth/ad";
+import * as zammadController from "./controllers/zammad-controller";
 import session from "express-session";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -93,8 +94,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Ticket routes
-  app.get("/api/tickets", async (req: Request, res: Response) => {
+  // Zammad Ticket routes
+  app.get("/api/tickets", zammadController.getTickets);
+  app.get("/api/tickets/:id", zammadController.getTicketById);
+  app.post("/api/tickets", zammadController.createTicket);
+  app.patch("/api/tickets/:id", zammadController.updateTicket);
+  
+  // Legacy ticket routes (can be removed once Zammad integration is complete)
+  app.get("/api/local-tickets", async (req: Request, res: Response) => {
     try {
       if (!req.session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -119,79 +126,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ tickets });
     } catch (error) {
       console.error("Error getting tickets:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-  
-  // Create ticket
-  app.post("/api/tickets", async (req: Request, res: Response) => {
-    try {
-      if (!req.session?.isAuthenticated) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      // Validate ticket data
-      const ticketData = insertTicketSchema.parse(req.body);
-      
-      // Set the user ID based on session
-      if (req.session.user) {
-        ticketData.userId = req.session.user.id;
-      } else if (req.session.adUser) {
-        ticketData.adUserId = req.session.adUser.id;
-      }
-      
-      // Create the ticket
-      const ticket = await storage.createTicket(ticketData);
-      return res.status(201).json({ ticket });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const validationError = fromZodError(error);
-        return res.status(400).json({ message: validationError.message });
-      }
-      
-      console.error("Error creating ticket:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-  
-  // Update ticket
-  app.patch("/api/tickets/:id", async (req: Request, res: Response) => {
-    try {
-      if (!req.session?.isAuthenticated) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      const ticketId = parseInt(req.params.id);
-      if (isNaN(ticketId)) {
-        return res.status(400).json({ message: "Invalid ticket ID" });
-      }
-      
-      // Get the ticket
-      const ticket = await storage.getTicket(ticketId);
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
-      
-      // Check permissions
-      if (req.session.user) {
-        // Customers can only update their own tickets
-        if (ticket.userId !== req.session.user.id) {
-          return res.status(403).json({ message: "Not authorized" });
-        }
-      } else if (req.session.adUser) {
-        // Employees can update any ticket (in a real app, more granular permissions would be applied)
-        // Admin can update any ticket
-      }
-      
-      // Update the ticket
-      const updatedTicket = await storage.updateTicket(ticketId, req.body);
-      if (!updatedTicket) {
-        return res.status(500).json({ message: "Failed to update ticket" });
-      }
-      
-      return res.json({ ticket: updatedTicket });
-    } catch (error) {
-      console.error("Error updating ticket:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });

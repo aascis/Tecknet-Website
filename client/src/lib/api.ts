@@ -154,6 +154,38 @@ export const ticketApi = {
   }
 };
 
+// Zammad integration API
+export const zammadApi = {
+  // Get tickets from Zammad for current user
+  getZammadTickets: async (): Promise<{ tickets: Ticket[] }> => {
+    const response = await apiRequest('GET', '/api/tickets'); // Using the Zammad controller
+    return response.json();
+  },
+  
+  // Get a specific ticket from Zammad
+  getZammadTicket: async (id: string): Promise<{ ticket: Ticket }> => {
+    const response = await apiRequest('GET', `/api/tickets/${id}`);
+    return response.json();
+  },
+  
+  // Create a ticket in Zammad
+  createZammadTicket: async (data: { 
+    subject: string; 
+    description: string; 
+    priority?: 'low' | 'medium' | 'high' | 'critical';
+    status?: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed';
+  }): Promise<{ ticket: Ticket }> => {
+    const response = await apiRequest('POST', '/api/tickets', data);
+    return response.json();
+  },
+  
+  // Update a ticket in Zammad
+  updateZammadTicket: async (id: number, data: Partial<Ticket>): Promise<{ ticket: Ticket }> => {
+    const response = await apiRequest('PATCH', `/api/tickets/${id}`, data);
+    return response.json();
+  }
+};
+
 // Subscription API
 export const subscriptionApi = {
   // Get subscriptions for current user
