@@ -77,12 +77,12 @@ const Home = () => {
               </p>
               <div className="mt-10 flex space-x-4">
                 <Link href="/services">
-                  <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-gray-100">
+                  <Button size="lg" variant="default" className="bg-white text-primary hover:bg-gray-100">
                     Our Services
                   </Button>
                 </Link>
                 <Link href="/contact">
-                  <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white">
+                  <Button size="lg" variant="default" className="bg-primary text-white border border-white hover:bg-primary/90">
                     Schedule a Demo
                   </Button>
                 </Link>
@@ -166,7 +166,7 @@ const Home = () => {
               </div>
               <div className="ml-3 inline-flex rounded-md shadow">
                 <Link href="/services">
-                  <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white">
+                  <Button size="lg" variant="default" className="bg-primary text-white border border-white hover:bg-primary/90">
                     Learn More
                   </Button>
                 </Link>

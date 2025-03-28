@@ -88,18 +88,18 @@ export class MemStorage implements IStorage {
   private initializeApplicationLinks() {
     const links: InsertApplicationLink[] = [
       {
-        name: "CRM System",
-        url: "https://crm.tecknet.ca",
-        description: "Customer Relationship Management",
-        icon: "database",
+        name: "Prometheus",
+        url: "https://prometheus.tecknet.ca",
+        description: "Monitoring and alerting system",
+        icon: "bar-chart-2",
         isActive: true,
         order: 1
       },
       {
-        name: "Bug Tracker",
-        url: "https://bugs.tecknet.ca",
-        description: "Issue and bug tracking system",
-        icon: "bug",
+        name: "Wazuh",
+        url: "https://wazuh.tecknet.ca",
+        description: "Security information and event management",
+        icon: "shield",
         isActive: true,
         order: 2
       },
@@ -118,14 +118,6 @@ export class MemStorage implements IStorage {
         icon: "file-text",
         isActive: true,
         order: 4
-      },
-      {
-        name: "Analytics",
-        url: "https://analytics.tecknet.ca",
-        description: "Business intelligence and analytics",
-        icon: "bar-chart",
-        isActive: true,
-        order: 5
       }
     ];
 
