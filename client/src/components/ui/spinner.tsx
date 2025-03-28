@@ -1,31 +1,26 @@
-import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
-const spinnerVariants = cva(
-  "inline-block rounded-full border-2 border-solid border-current border-r-transparent animate-spin text-primary",
-  {
-    variants: {
-      size: {
-        default: "h-4 w-4 border-2",
-        sm: "h-3 w-3 border-2",
-        lg: "h-6 w-6 border-2",
-        xl: "h-8 w-8 border-3",
-      },
-    },
-    defaultVariants: {
-      size: "default",
-    },
-  }
-);
-
-interface SpinnerProps extends VariantProps<typeof spinnerVariants> {
+interface SpinnerProps {
   className?: string;
+  size?: "default" | "sm" | "lg" | "xl";
 }
 
-export function Spinner({ className, size }: SpinnerProps) {
+export function Spinner({ className, size = "default" }: SpinnerProps) {
+  const sizeClasses = {
+    default: "h-6 w-6",
+    sm: "h-4 w-4",
+    lg: "h-8 w-8",
+    xl: "h-12 w-12",
+  };
+
   return (
-    <div className={cn(spinnerVariants({ size }), className)} role="status">
-      <span className="sr-only">Loading...</span>
-    </div>
+    <Loader2 
+      className={cn(
+        "animate-spin text-primary",
+        sizeClasses[size],
+        className
+      )} 
+    />
   );
 }

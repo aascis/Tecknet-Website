@@ -22,7 +22,8 @@ import {
   XCircle,
   UserPlus,
   UserCheck,
-  UserX 
+  UserX,
+  RefreshCw
 } from 'lucide-react';
 import { ticketApi, adminApi, Ticket, UserForApproval } from '@/lib/api';
 
@@ -68,6 +69,25 @@ const AdminDashboard = () => {
       });
     },
   });
+  
+  // Reset application links mutation
+  const resetLinksMutation = useMutation({
+    mutationFn: () => adminApi.resetApplicationLinks(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/application-links'] });
+      toast({
+        title: "Success",
+        description: "Application links have been reset to the default configuration",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset application links",
+        variant: "destructive",
+      });
+    },
+  });
 
   const tickets: Ticket[] = ticketsData?.tickets || [];
   const pendingUsers: UserForApproval[] = pendingUsersData?.users || [];
@@ -82,6 +102,13 @@ const AdminDashboard = () => {
   // Handle approve customer
   const handleApproveCustomer = (userId: number) => {
     approveMutation.mutate(userId);
+  };
+  
+  // Handle reset application links
+  const handleResetAppLinks = () => {
+    if (confirm("Are you sure you want to reset all application links to the default configuration?")) {
+      resetLinksMutation.mutate();
+    }
   };
 
   if (isLoadingTickets || isLoadingPendingUsers) {
@@ -293,7 +320,7 @@ const AdminDashboard = () => {
                   <CardDescription>View and manage system settings</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 p-4 rounded-md">
                         <h3 className="text-sm font-medium text-gray-500">Environment</h3>
@@ -317,6 +344,25 @@ const AdminDashboard = () => {
                         <h3 className="text-sm font-medium text-gray-500">Last System Update</h3>
                         <p className="mt-1 text-sm text-gray-900">Today, 8:15 AM</p>
                       </div>
+                    </div>
+                    
+                    {/* Application Links Management */}
+                    <div className="border-t pt-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Application Links Management</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Reset application links to restore the default configuration (Prometheus, Wazuh, Calendar, Documentation)
+                      </p>
+                      <Button 
+                        onClick={handleResetAppLinks}
+                        disabled={resetLinksMutation.isPending}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        {resetLinksMutation.isPending ? 
+                          <Spinner className="mr-2 h-4 w-4" /> : 
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                        }
+                        Reset Application Links
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

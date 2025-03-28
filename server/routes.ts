@@ -59,6 +59,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Route to reset application links (admin only)
+  app.post("/api/admin/reset-app-links", adAuth.isADAuthenticated, adAuth.isADAdmin, async (req: Request, res: Response) => {
+    try {
+      // Clear all existing application links
+      await storage.clearApplicationLinks();
+      
+      // Initialize with the new set of links
+      const links = await storage.initializeAndGetApplicationLinks();
+      
+      return res.json({ 
+        message: "Application links have been reset", 
+        links 
+      });
+    } catch (error) {
+      console.error("Error resetting application links:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   // Subscription routes
   app.get("/api/subscriptions", localAuth.isAuthenticated, async (req: Request, res: Response) => {
     try {

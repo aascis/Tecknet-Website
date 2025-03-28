@@ -54,6 +54,8 @@ export interface IStorage {
   getAllApplicationLinks(): Promise<ApplicationLink[]>;
   createApplicationLink(applicationLink: InsertApplicationLink): Promise<ApplicationLink>;
   updateApplicationLink(id: number, applicationLink: Partial<ApplicationLink>): Promise<ApplicationLink | undefined>;
+  clearApplicationLinks(): Promise<void>;
+  initializeAndGetApplicationLinks(): Promise<ApplicationLink[]>;
 }
 
 // In-memory storage implementation
@@ -342,6 +344,20 @@ export class MemStorage implements IStorage {
     };
     this.applicationLinks.set(id, updatedApplicationLink);
     return updatedApplicationLink;
+  }
+  
+  async clearApplicationLinks(): Promise<void> {
+    // Clear all application links
+    this.applicationLinks.clear();
+    // Reset the application link ID counter
+    this.applicationLinkId = 1;
+  }
+  
+  async initializeAndGetApplicationLinks(): Promise<ApplicationLink[]> {
+    // Initialize the application links with the latest configuration
+    this.initializeApplicationLinks();
+    // Return all application links
+    return this.getAllApplicationLinks();
   }
 }
 

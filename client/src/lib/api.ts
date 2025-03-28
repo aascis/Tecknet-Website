@@ -184,5 +184,11 @@ export const adminApi = {
   approveCustomer: async (userId: number): Promise<{ user: UserForApproval }> => {
     const response = await apiRequest('POST', `/api/admin/approve-customer/${userId}`);
     return response.json();
+  },
+  
+  // Reset application links (re-initialize them with the default set)
+  resetApplicationLinks: async (): Promise<{ message: string, links: ApplicationLink[] }> => {
+    const response = await apiRequest('POST', '/api/admin/reset-app-links');
+    return response.json();
   }
 };
