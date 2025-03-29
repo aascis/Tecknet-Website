@@ -5,55 +5,25 @@ import { InsertTicket } from '@shared/schema';
 
 // Get all tickets for the current user
 export async function getTickets(req: Request, res: Response) {
-  console.log('getTickets controller called');
   try {
     const { user, adUser } = req.session as any;
-    console.log('Session data:', JSON.stringify({ 
-      hasUser: !!user, 
-      hasAdUser: !!adUser, 
-      sessionID: req.sessionID,
-      sessionData: req.session
-    }, null, 2));
     
     if (!user && !adUser) {
-      console.log('No authenticated user found in session');
-      
-      // For testing, use default values so we can see if the Zammad integration works
-      // Remove this in production!
-      const testEmail = 'customer@example.com';
-      console.log(`Using test email ${testEmail} for development`);
-      
-      try {
-        // Get tickets from Zammad by test email
-        const zammadTickets = await zammadService.getTicketsByCustomer(testEmail);
-        
-        // Map Zammad tickets to our internal format
-        const tickets = zammadTickets.map(ticket => zammadService.mapZammadToTicket(ticket));
-        
-        return res.status(200).json({ tickets, note: "Using test account - not authenticated" });
-      } catch (testError: any) {
-        console.error('Error fetching test tickets:', testError);
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
+      return res.status(401).json({ message: 'Not authenticated' });
     }
     
     // Use email from the authenticated user
     const email = user?.email || adUser?.email;
-    console.log(`Using email: ${email}`);
     
     if (!email) {
-      console.log('No email found in user data');
       return res.status(400).json({ message: 'User email not found' });
     }
     
     // Get tickets from Zammad by user's email
-    console.log(`Fetching tickets for ${email}`);
     const zammadTickets = await zammadService.getTicketsByCustomer(email);
-    console.log(`Found ${zammadTickets?.length || 0} tickets`);
     
     // Map Zammad tickets to our internal format
     const tickets = zammadTickets.map(ticket => zammadService.mapZammadToTicket(ticket));
-    console.log(`Mapped ${tickets.length} tickets to internal format`);
     
     return res.status(200).json({ tickets });
   } catch (error: any) {
@@ -87,51 +57,50 @@ export async function getTicketById(req: Request, res: Response) {
 
 // Create a new ticket
 export async function createTicket(req: Request, res: Response) {
-  console.log('Zammad controller: createTicket called', req.body);
   try {
-    // Get user information from session or request
     const { user, adUser } = req.session as any;
     
-    // Check authentication - for now, we'll make this more lenient for testing
     if (!user && !adUser) {
-      console.log('No authenticated user found in session');
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({ message: 'Not authenticated' });
     }
     
+    // Get the ticket data from the request body
+    const ticketData = req.body;
+    
     // Determine the user's email and name
-    const userEmail = user?.email || adUser?.email;
-    const userName = user?.fullName || adUser?.fullName || (user?.username || adUser?.username) || '';
+    const email = user?.email || adUser?.email;
+    const name = user?.fullName || adUser?.fullName || (user?.username || adUser?.username);
     
-    console.log(`Creating ticket for user: ${userName} (${userEmail})`);
+    if (!email) {
+      return res.status(400).json({ message: 'User email not found' });
+    }
     
-    // Map the request data to Zammad ticket format
-    const ticketData = zammadService.mapTicketToZammad(req.body, userEmail, userName);
+    // Map our ticket to Zammad format
+    const zammadTicketData = zammadService.mapTicketToZammad(ticketData, email, name);
     
-    // Create the ticket as an agent
-    console.log('Calling createTicketAsAgent with data:', JSON.stringify(ticketData, null, 2));
-    const zammadTicket = await zammadService.createTicketAsAgent(ticketData, userEmail);
+    // Create the ticket in Zammad
+    const zammadTicket = await zammadService.createTicket(zammadTicketData);
     
-    console.log('Zammad ticket created:', zammadTicket.id);
+    // Map the created ticket back to our format
+    const ticket = zammadService.mapZammadToTicket(zammadTicket);
     
-    // Create a local ticket record
+    // Also store the ticket reference in our local database
     const insertTicket: InsertTicket = {
-      ticketId: zammadTicket.id.toString(),
-      subject: req.body.subject,
-      description: req.body.description,
-      status: req.body.status || 'open',
-      priority: req.body.priority || 'medium',
-      userId: user ? user.id : null,
-      adUserId: adUser ? adUser.id : null
-      // createdAt and updatedAt are handled automatically by the schema
+      ticketId: ticket.ticketId!,
+      subject: ticket.subject!,
+      description: ticket.description!,
+      status: ticket.status!,
+      priority: ticket.priority!,
+      userId: user?.id || null,
+      adUserId: adUser?.id || null
     };
     
-    const newTicket = await storage.createTicket(insertTicket);
-    console.log('Local ticket record created:', newTicket.id);
+    const storedTicket = await storage.createTicket(insertTicket);
     
-    res.status(201).json({ ticket: newTicket });
+    return res.status(201).json({ ticket: storedTicket });
   } catch (error: any) {
-    console.error('Error creating ticket:', error);
-    res.status(500).json({ message: `Failed to create ticket: ${error.message}` });
+    console.error('Error creating ticket in Zammad:', error);
+    return res.status(500).json({ message: `Failed to create ticket: ${error.message}` });
   }
 }
 

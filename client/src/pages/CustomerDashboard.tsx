@@ -5,7 +5,6 @@ import CustomerSidebar from '@/components/dashboard/CustomerSidebar';
 import TicketStats from '@/components/dashboard/TicketStats';
 import TicketTable from '@/components/dashboard/TicketTable';
 import SubscriptionCard from '@/components/dashboard/SubscriptionCard';
-import CreateTicketModal from '@/components/dashboard/CreateTicketModal';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { PlusIcon } from 'lucide-react';
@@ -14,7 +13,6 @@ import { ticketApi, subscriptionApi, Ticket, Subscription } from '@/lib/api';
 const CustomerDashboard = () => {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
   // Fetch tickets
   const { 
@@ -119,18 +117,12 @@ const CustomerDashboard = () => {
           <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Customer Dashboard</h1>
             <div className="mt-3 sm:mt-0 sm:ml-4">
-              <Button className="inline-flex items-center" onClick={() => setIsTicketModalOpen(true)}>
+              <Button className="inline-flex items-center">
                 <PlusIcon className="mr-2 h-4 w-4" />
                 New Support Ticket
               </Button>
             </div>
           </div>
-          
-          {/* Ticket creation modal */}
-          <CreateTicketModal 
-            isOpen={isTicketModalOpen} 
-            onClose={() => setIsTicketModalOpen(false)}
-          />
 
           {/* Subscription Information */}
           <div className="mt-6">

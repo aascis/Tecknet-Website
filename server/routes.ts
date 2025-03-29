@@ -3,9 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as localAuth from "./auth/local";
 import * as adAuth from "./auth/ad";
-import * as customerAuth from "./auth/customer";
 import * as zammadController from "./controllers/zammad-controller";
-import { zammadService } from "./services/zammad";
 import session from "express-session";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -30,29 +28,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth routes
   app.post("/api/auth/register", localAuth.registerCustomer);
-  
-  // Employee (AD) authentication
-  app.post("/api/auth/employee/login", adAuth.loginWithAD);
-  
-  // Customer authentication - two options:
-  // 1. Local database authentication (legacy)
-  app.post("/api/auth/customer/login", localAuth.loginCustomer);
-  // 2. Zammad authentication (new)
-  app.post("/api/auth/customer/zammad-login", customerAuth.loginCustomer);
-  
-  // Unified API for simpler frontend integration
-  app.post("/api/auth/login", (req, res) => {
-    // Check if this is an employee login (has username field) or a customer login (has email field)
-    if (req.body.username) {
-      return adAuth.loginWithAD(req, res);
-    } else if (req.body.email) {
-      // Try Zammad authentication first, then fall back to local if needed
-      return customerAuth.loginCustomer(req, res);
-    } else {
-      return res.status(400).json({ message: "Invalid login request" });
-    }
-  });
-  
+  app.post("/api/auth/login", localAuth.loginCustomer);
+  app.post("/api/auth/ad-login", adAuth.loginWithAD);
   app.post("/api/auth/logout", localAuth.logout);
   
   // Customer approval routes (admin only)
@@ -117,94 +94,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Debug middleware to log request details
-  app.use((req: Request, res: Response, next) => {
-    console.log(`[DEBUG] ${req.method} ${req.url}`);
-    console.log(`[DEBUG] Session ID: ${req.sessionID}`);
-    console.log(`[DEBUG] Session data:`, req.session);
-    next();
-  });
-
-  // Test authentication routes
-  app.get('/api/auth-test', (req: Request, res: Response) => {
-    return res.json({
-      authenticated: req.session?.isAuthenticated || false,
-      user: req.session?.user || req.session?.adUser || null,
-      session: req.session || null
-    });
-  });
-  
-  // Debug endpoint to test AD authentication
-  app.post('/api/test-ad-auth', async (req: Request, res: Response) => {
-    try {
-      const { username, password } = req.body;
-      console.log(`[DEBUG] Testing AD authentication directly for: ${username}`);
-      
-      const result = await adAuth.authenticateWithAD(username, password);
-      console.log(`[DEBUG] AD Authentication result:`, result);
-      
-      return res.json(result);
-    } catch (error) {
-      console.error(`[DEBUG] AD Test auth error:`, error);
-      return res.status(500).json({ error: "AD Test failed" });
-    }
-  });
-  
-  // Debug endpoint to test Zammad authentication
-  app.post('/api/test-zammad-auth', async (req: Request, res: Response) => {
-    try {
-      const { email, password } = req.body;
-      console.log(`[DEBUG] Testing Zammad authentication directly for: ${email}`);
-      
-      const result = await zammadService.authenticateCustomer(email, password);
-      console.log(`[DEBUG] Zammad Authentication result:`, result);
-      
-      return res.json(result);
-    } catch (error) {
-      console.error(`[DEBUG] Zammad Test auth error:`, error);
-      return res.status(500).json({ error: "Zammad Test failed" });
-    }
-  });
-
   // Zammad Ticket routes
   app.get("/api/tickets", zammadController.getTickets);
   app.get("/api/tickets/:id", zammadController.getTicketById);
   app.post("/api/tickets", zammadController.createTicket);
   app.patch("/api/tickets/:id", zammadController.updateTicket);
-  
-  // Test endpoint without auth for ticket creation
-  app.post("/api/tickets-test", (req: Request, res: Response) => {
-    console.log('Test ticket creation endpoint called');
-    
-    // Add test user data to session for testing
-    if (!req.session) {
-      req.session = {} as any;
-    }
-    
-    // Create a temporary test user with all required fields
-    const testUser = {
-      id: 999,
-      email: 'customer@example.com',
-      fullName: 'Test Customer',
-      username: 'testcustomer',
-      role: 'customer' as const,
-      password: 'password123',
-      status: 'active' as const,
-      companyName: 'Test Company',
-      phone: '555-1234',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // Attach to session
-    req.session.user = testUser;
-    req.session.isAuthenticated = true;
-    
-    console.log('Added test user to session:', testUser);
-    
-    // Forward to the ticket controller
-    return zammadController.createTicket(req, res);
-  });
   
   // Legacy ticket routes (can be removed once Zammad integration is complete)
   app.get("/api/local-tickets", async (req: Request, res: Response) => {

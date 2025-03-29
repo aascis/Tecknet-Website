@@ -106,7 +106,7 @@ export const authApi = {
   
   // Login as an employee using AD credentials
   employeeLogin: async (data: EmployeeLoginData): Promise<AuthResponse> => {
-    const response = await apiRequest('POST', '/api/auth/login', data);
+    const response = await apiRequest('POST', '/api/auth/ad-login', data);
     return response.json();
   },
   

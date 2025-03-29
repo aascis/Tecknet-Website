@@ -18,9 +18,6 @@ export function comparePassword(password: string, hash: string): boolean {
   return compareSync(password, hash);
 }
 
-// Import the Zammad service
-import { zammadService } from "../services/zammad";
-
 // Register a new customer account
 export async function registerCustomer(req: Request, res: Response) {
   try {
@@ -40,25 +37,6 @@ export async function registerCustomer(req: Request, res: Response) {
     const existingUsername = await storage.getUserByUsername(username);
     if (existingUsername) {
       return res.status(400).json({ message: "Username already exists" });
-    }
-    
-    // Try to create the user in Zammad for ticketing
-    try {
-      console.log('Creating customer in Zammad:', validatedData.email);
-      
-      // Create/check user in Zammad
-      const zammadResult = await zammadService.findOrCreateCustomer({
-        email: validatedData.email,
-        firstname: validatedData.fullName.split(' ')[0],
-        lastname: validatedData.fullName.split(' ').slice(1).join(' '),
-        organization: validatedData.companyName,
-        phone: validatedData.phone
-      });
-      
-      console.log('Zammad customer created/found:', zammadResult);
-    } catch (zammadError) {
-      // Log but continue - we don't want registration to fail if Zammad is down
-      console.error('Error creating customer in Zammad:', zammadError);
     }
     
     // Create new user with pending status
