@@ -8,6 +8,10 @@ import { promisify } from "util";
 
 const execPromise = promisify(exec);
 
+// LDAP Configuration
+const LDAP_SERVER = "Grp-4-AD.tecknet.ca";
+const LDAP_PORT = 389;
+
 // AD authentication using LDAP-like approach
 export async function authenticateWithAD(username: string, password: string): Promise<{
   success: boolean;
@@ -17,6 +21,7 @@ export async function authenticateWithAD(username: string, password: string): Pr
     fullName?: string;
   };
   error?: string;
+  networkError?: boolean;
 }> {
   console.log(`[AD DEBUG] Attempting to authenticate user: ${username}`);
   
@@ -24,43 +29,63 @@ export async function authenticateWithAD(username: string, password: string): Pr
     // Check if the provided username contains domain
     const usernameOnly = username.includes('@') ? username.split('@')[0] : username;
     
-    // For this implementation, we'll simulate LDAP authentication with known users
-    // In a production environment, this would be replaced with real LDAP/AD integration
+    // Special handling for ashish user
+    if (usernameOnly === "ashish") {
+      console.log(`[AD DEBUG] Special handling for ashish user`);
+      if (password === "asdf123" || password === "Password1") {
+        console.log(`[AD DEBUG] Authentication successful for ashish user`);
+        return {
+          success: true,
+          user: {
+            username: "ashish",
+            email: "ashish@tecknet.ca",
+            fullName: "Ashish Shrestha"
+          }
+        };
+      }
+    }
     
-    // For testing and demo purposes, let's allow any username with format of <firstname>.<lastname>
-    // and specific test passwords
-    
-    // OPTION 1: Allow all usernames with asdf123 password (for testing)
-    if (password === "asdf123" && usernameOnly.includes('.')) {
-      const [firstName, lastName] = usernameOnly.split('.');
-      const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-      const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+    // OPTION 1: Allow any username with asdf123 password (for testing)
+    if (password === "asdf123") {
+      let firstName, lastName, fullName;
+      
+      if (usernameOnly.includes('.')) {
+        [firstName, lastName] = usernameOnly.split('.');
+        const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+        const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+        fullName = `${capitalizedFirstName} ${capitalizedLastName}`;
+      } else {
+        firstName = usernameOnly;
+        const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+        fullName = capitalizedFirstName;
+      }
       
       console.log(`[AD DEBUG] Authentication successful for test user: ${usernameOnly}`);
       return {
         success: true,
         user: {
           username: usernameOnly,
-          email: `${usernameOnly}@capstone.local`,
-          fullName: `${capitalizedFirstName} ${capitalizedLastName}`
+          email: `${usernameOnly}@tecknet.ca`,
+          fullName: fullName
         }
       };
     }
     
-    // OPTION 2: Ashish Shrestha - special user from Zammad docs
-    if (usernameOnly === "ashrestha" && password === "Password1") {
-      console.log(`[AD DEBUG] Authentication successful for ashrestha user`);
-      return {
-        success: true,
-        user: {
-          username: "ashrestha",
-          email: "ashrestha@capstone.local",
-          fullName: "Ashish Shrestha"
-        }
-      };
+    // Try to authenticate using LDAP via Python script
+    try {
+      // Format for LDAP authentication
+      const ldapUsername = usernameOnly.includes('@') ? usernameOnly : `${usernameOnly}@tecknet.ca`;
+      console.log(`[AD DEBUG] Testing LDAP authentication for ${ldapUsername}`);
+      
+      // Use actual LDAP authentication here
+      // For now, falling back to test credentials
+      
+    } catch (ldapError) {
+      console.error(`[AD DEBUG] LDAP authentication error:`, ldapError);
+      // Continue with other authentication methods
     }
     
-    // OPTION 3: Hardcoded test users (same as before)
+    // Fallback test users
     if (username === "john.doe" && password === "password123") {
       return {
         success: true,
@@ -99,7 +124,8 @@ export async function authenticateWithAD(username: string, password: string): Pr
     console.error(`[AD DEBUG] Authentication error for ${username}:`, error);
     return {
       success: false,
-      error: "Authentication error"
+      error: "Authentication error",
+      networkError: true
     };
   }
 }
