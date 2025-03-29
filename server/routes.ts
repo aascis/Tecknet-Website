@@ -94,11 +94,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug middleware to log request details
+  app.use((req: Request, res: Response, next) => {
+    console.log(`[DEBUG] ${req.method} ${req.url}`);
+    console.log(`[DEBUG] Session ID: ${req.sessionID}`);
+    console.log(`[DEBUG] Session data:`, req.session);
+    next();
+  });
+
+  // Test authentication route
+  app.get('/api/auth-test', (req: Request, res: Response) => {
+    return res.json({
+      authenticated: req.session?.isAuthenticated || false,
+      user: req.session?.user || req.session?.adUser || null,
+      session: req.session || null
+    });
+  });
+
   // Zammad Ticket routes
   app.get("/api/tickets", zammadController.getTickets);
   app.get("/api/tickets/:id", zammadController.getTicketById);
   app.post("/api/tickets", zammadController.createTicket);
   app.patch("/api/tickets/:id", zammadController.updateTicket);
+  
+  // Test endpoint without auth for ticket creation
+  app.post("/api/tickets-test", zammadController.createTicket);
   
   // Legacy ticket routes (can be removed once Zammad integration is complete)
   app.get("/api/local-tickets", async (req: Request, res: Response) => {

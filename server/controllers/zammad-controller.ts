@@ -57,50 +57,51 @@ export async function getTicketById(req: Request, res: Response) {
 
 // Create a new ticket
 export async function createTicket(req: Request, res: Response) {
+  console.log('Zammad controller: createTicket called', req.body);
   try {
+    // Get user information from session or request
     const { user, adUser } = req.session as any;
     
+    // Check authentication - for now, we'll make this more lenient for testing
     if (!user && !adUser) {
-      return res.status(401).json({ message: 'Not authenticated' });
+      console.log('No authenticated user found in session');
+      return res.status(401).json({ message: 'Unauthorized' });
     }
-    
-    // Get the ticket data from the request body
-    const ticketData = req.body;
     
     // Determine the user's email and name
-    const email = user?.email || adUser?.email;
-    const name = user?.fullName || adUser?.fullName || (user?.username || adUser?.username);
+    const userEmail = user?.email || adUser?.email;
+    const userName = user?.fullName || adUser?.fullName || (user?.username || adUser?.username) || '';
     
-    if (!email) {
-      return res.status(400).json({ message: 'User email not found' });
-    }
+    console.log(`Creating ticket for user: ${userName} (${userEmail})`);
     
-    // Map our ticket to Zammad format
-    const zammadTicketData = zammadService.mapTicketToZammad(ticketData, email, name);
+    // Map the request data to Zammad ticket format
+    const ticketData = zammadService.mapTicketToZammad(req.body, userEmail, userName);
     
-    // Create the ticket in Zammad
-    const zammadTicket = await zammadService.createTicket(zammadTicketData);
+    // Create the ticket as an agent
+    console.log('Calling createTicketAsAgent with data:', JSON.stringify(ticketData, null, 2));
+    const zammadTicket = await zammadService.createTicketAsAgent(ticketData, userEmail);
     
-    // Map the created ticket back to our format
-    const ticket = zammadService.mapZammadToTicket(zammadTicket);
+    console.log('Zammad ticket created:', zammadTicket.id);
     
-    // Also store the ticket reference in our local database
+    // Create a local ticket record
     const insertTicket: InsertTicket = {
-      ticketId: ticket.ticketId!,
-      subject: ticket.subject!,
-      description: ticket.description!,
-      status: ticket.status!,
-      priority: ticket.priority!,
-      userId: user?.id || null,
-      adUserId: adUser?.id || null
+      ticketId: zammadTicket.id.toString(),
+      subject: req.body.subject,
+      description: req.body.description,
+      status: req.body.status || 'open',
+      priority: req.body.priority || 'medium',
+      userId: user ? user.id : null,
+      adUserId: adUser ? adUser.id : null
+      // createdAt and updatedAt are handled automatically by the schema
     };
     
-    const storedTicket = await storage.createTicket(insertTicket);
+    const newTicket = await storage.createTicket(insertTicket);
+    console.log('Local ticket record created:', newTicket.id);
     
-    return res.status(201).json({ ticket: storedTicket });
+    res.status(201).json({ ticket: newTicket });
   } catch (error: any) {
-    console.error('Error creating ticket in Zammad:', error);
-    return res.status(500).json({ message: `Failed to create ticket: ${error.message}` });
+    console.error('Error creating ticket:', error);
+    res.status(500).json({ message: `Failed to create ticket: ${error.message}` });
   }
 }
 

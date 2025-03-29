@@ -28,36 +28,55 @@ class ZammadService {
     }
     
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = {
-      'Authorization': `Token token=${this.token}`,
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
     
-    const options: any = {
-      method,
-      headers
-    };
+    console.log(`Making Zammad API request to: ${url}`);
+    console.log(`Method: ${method}`);
     
-    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-      options.body = JSON.stringify(data);
+    // Use token authentication exactly like the Python script
+    if (this.token) {
+      headers['Authorization'] = `Token token=${this.token}`;
+      console.log('Using token authentication');
+    } else {
+      throw new Error('Zammad is not configured. Please set ZAMMAD_URL and ZAMMAD_TOKEN environment variables.');
+    }
+    
+    console.log('Request headers:', JSON.stringify(headers, (key, value) => 
+      key === 'Authorization' ? '[HIDDEN]' : value));
+    
+    if (data) {
+      console.log('Request data:', JSON.stringify(data));
     }
     
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined
+      });
+      
+      const responseText = await response.text();
+      console.log(`Response status: ${response.status}`);
+      console.log(`Response body: ${responseText}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Zammad API error: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(`Zammad API error (${response.status}): ${responseText}`);
       }
       
-      // For DELETE requests or other responses without content
-      if (response.status === 204 || response.headers.get('content-length') === '0') {
-        return {};
+      // Parse the response if it's JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.warn('Failed to parse response as JSON:', responseText);
+        result = responseText;
       }
       
-      return await response.json();
+      return result;
     } catch (error: any) {
-      console.error(`Zammad API request failed: ${error.message}`);
+      console.error(`Zammad API request failed for ${endpoint}:`, error);
       throw error;
     }
   }
@@ -144,22 +163,79 @@ class ZammadService {
     }
   }
   
+  // Get user ID by email
+  async getUserIdByEmail(email: string): Promise<number | null> {
+    try {
+      console.log(`Looking up Zammad user ID for email: ${email}`);
+      const searchUrl = `/users/search?query=${encodeURIComponent(email)}`;
+      const users = await this.request(searchUrl);
+      
+      if (!users || users.length === 0) {
+        console.log(`No user found with email: ${email}`);
+        return null;
+      }
+      
+      console.log(`Found user with ID: ${users[0].id} for email: ${email}`);
+      return users[0].id;
+    } catch (error) {
+      console.error(`Error finding user by email ${email}:`, error);
+      return null;
+    }
+  }
+
+  // Create ticket as agent with token auth
+  async createTicketAsAgent(ticketData: Partial<{
+    title: string;
+    group_id: string | number;
+    customer_id: string | number;
+    state_id: string | number;
+    priority_id: string | number;
+    article: any;
+  }>, userEmail?: string): Promise<any> {
+    try {
+      console.log('Creating ticket with data:', JSON.stringify(ticketData, null, 2));
+      
+      // If we have a customer email but no customer_id, look up the customer
+      if (userEmail && !ticketData.customer_id) {
+        const customerId = await this.getUserIdByEmail(userEmail);
+        if (customerId) {
+          ticketData.customer_id = customerId;
+        } else {
+          console.log(`Warning: Could not find customer with email ${userEmail}, using default customer_id=2`);
+          // Use customer ID 2 as fallback - update this based on your Zammad setup
+          ticketData.customer_id = 2;
+        }
+      }
+      
+      // Complete the ticket data with defaults if needed
+      const completeTicketData = {
+        ...ticketData,
+        group_id: ticketData.group_id || 1, // Default to the first group
+        state_id: ticketData.state_id || 1,  // Default new state
+        priority_id: ticketData.priority_id || 2, // Default normal priority
+      };
+      
+      console.log('Sending finalized ticket data:', JSON.stringify(completeTicketData, null, 2));
+      return await this.request('/tickets', 'POST', completeTicketData);
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      throw error;
+    }
+  }
+
   // Map our ticket format to Zammad format
   mapTicketToZammad(ticket: Partial<Ticket>, userEmail: string, userName: string): any {
     return {
-      title: ticket.subject,
-      customer: {
-        email: userEmail,
-        name: userName
-      },
+      title: ticket.subject, // Use the subject as the title
+      // Don't set customer_id here, we'll set it in createTicketAsAgent after lookup
       article: {
         subject: ticket.subject,
         body: ticket.description,
-        type: 'note',
+        content_type: 'text/plain', // or 'text/html' if you want HTML support
         internal: false,
       },
       state_id: this.mapStatusToZammad(ticket.status),
-      priority_id: this.mapPriorityToZammad(ticket.priority)
+      priority_id: this.mapPriorityToZammad(ticket.priority),
     };
   }
   
