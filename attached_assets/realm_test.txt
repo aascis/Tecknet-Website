@@ -1,0 +1,16 @@
+ashish@website:/var/www/tecknet$ realm  discover tecknet.ca
+tecknet.ca
+  type: kerberos
+  realm-name: TECKNET.CA
+  domain-name: tecknet.ca
+  configured: kerberos-member
+  server-software: active-directory
+  client-software: sssd
+  required-package: sssd-tools
+  required-package: sssd
+  required-package: libnss-sss
+  required-package: libpam-sss
+  required-package: adcli
+  required-package: samba-common-bin
+  login-formats: %U@tecknet.ca
+  login-policy: allow-realm-logins

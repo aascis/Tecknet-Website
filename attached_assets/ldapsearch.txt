@@ -1,0 +1,67 @@
+ashish@website:/var/www/tecknet$ ldapsearch -H ldap://Grp-4-AD.tecknet.ca -b "DC=tecknet,DC=ca" -D "ldap@tecknet.ca" -w "Secret55!" "(sAMAccountName=ashish)"
+# extended LDIF
+#
+# LDAPv3
+# base <DC=tecknet,DC=ca> with scope subtree
+# filter: (sAMAccountName=ashish)
+# requesting: ALL
+#
+
+# ashish, Users, tecknet.ca
+dn: CN=ashish,CN=Users,DC=tecknet,DC=ca
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: ashish
+givenName: ashish
+distinguishedName: CN=ashish,CN=Users,DC=tecknet,DC=ca
+instanceType: 4
+whenCreated: 20250327015047.0Z
+whenChanged: 20250327032835.0Z
+displayName: ashish
+uSNCreated: 117499
+uSNChanged: 117786
+name: ashish
+objectGUID:: rZ4cxx4/GEWftRCIWeN7Sw==
+userAccountControl: 66048
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 133875197027243960
+lastLogoff: 0
+lastLogon: 133875197150526710
+pwdLastSet: 133875138479957812
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAAyFncZplJn2AwdSfguAQAAA==
+accountExpires: 9223372036854775807
+logonCount: 0
+sAMAccountName: ashish
+sAMAccountType: 805306368
+userPrincipalName: ashish@tecknet.ca
+objectCategory: CN=Person,CN=Schema,CN=Configuration,DC=tecknet,DC=ca
+dSCorePropagationData: 16010101000000.0Z
+lastLogonTimestamp: 133875197150526710
+
+# search reference
+ref: ldap://sg.tecknet.ca/DC=sg,DC=tecknet,DC=ca
+
+# search reference
+ref: ldap://la.tecknet.ca/DC=la,DC=tecknet,DC=ca
+
+# search reference
+ref: ldap://ForestDnsZones.tecknet.ca/DC=ForestDnsZones,DC=tecknet,DC=ca
+
+# search reference
+ref: ldap://DomainDnsZones.tecknet.ca/DC=DomainDnsZones,DC=tecknet,DC=ca
+
+# search reference
+ref: ldap://tecknet.ca/CN=Configuration,DC=tecknet,DC=ca
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 7
+# numEntries: 1
+# numReferences: 5

@@ -1,0 +1,49 @@
+/home/ashish/.pm2/logs/tecknet-error.log last 15 lines:
+0|tecknet  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|tecknet  | ZAMMAD_URL environment variable is not set. Zammad integration will not work.
+0|tecknet  | ZAMMAD_TOKEN environment variable is not set. Zammad integration will not work.
+0|tecknet  | Error: EACCES: permission denied, mkdir '/var/www/tecknet/node_modules/.vite/deps_temp_99ef5009'
+0|tecknet  |     at Object.mkdirSync (node:fs:1372:26)
+0|tecknet  |     at runOptimizeDeps (/var/www/tecknet/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:50715:15)
+0|tecknet  |     at <anonymous> (/var/www/tecknet/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:50188:34)
+0|tecknet  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|tecknet  | ZAMMAD_URL environment variable is not set. Zammad integration will not work.
+0|tecknet  | ZAMMAD_TOKEN environment variable is not set. Zammad integration will not work.
+0|tecknet  | Error: EACCES: permission denied, mkdir '/var/www/tecknet/node_modules/.vite/deps_temp_e830323a'
+0|tecknet  |     at Object.mkdirSync (node:fs:1372:26)
+0|tecknet  |     at runOptimizeDeps (/var/www/tecknet/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:50715:15)
+0|tecknet  |     at <anonymous> (/var/www/tecknet/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:50188:34)
+0|tecknet  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+
+/home/ashish/.pm2/logs/tecknet-out.log last 15 lines:
+0|tecknet  | 11:59:39 PM [express] serving on port 5000 at http://0.0.0.0:5000
+0|tecknet  |
+0|tecknet  | > rest-express@1.0.0 dev
+0|tecknet  | > tsx server/index.ts
+0|tecknet  |
+0|tecknet  | 11:59:41 PM [express] serving on port 5000 at http://0.0.0.0:5000
+0|tecknet  |
+0|tecknet  | > rest-express@1.0.0 dev
+0|tecknet  | > tsx server/index.ts
+0|tecknet  |
+0|tecknet  | 11:59:44 PM [express] serving on port 5000 at http://0.0.0.0:5000
+0|tecknet  |
+0|tecknet  | > rest-express@1.0.0 dev
+0|tecknet  | > tsx server/index.ts
+0|tecknet  |
+
+0|tecknet  | ZAMMAD_URL environment variable is not set. Zammad integration will not work.
+0|tecknet  | ZAMMAD_TOKEN environment variable is not set. Zammad integration will not work.
+0|tecknet  | 11:59:47 PM [express] serving on port 5000 at http://0.0.0.0:5000
+0|tecknet  | Error: EACCES: permission denied, mkdir '/var/www/tecknet/node_modules/.vite/deps_temp_c5c3f2a1'
+0|tecknet  |     at Object.mkdirSync (node:fs:1372:26)
+0|tecknet  |     at runOptimizeDeps (/var/www/tecknet/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:50715:15)
+0|tecknet  |     at <anonymous> (/var/www/tecknet/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:50188:34)
+0|tecknet  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|tecknet  | > rest-express@1.0.0 dev
+0|tecknet  | > tsx server/index.ts
+
+
+
+
