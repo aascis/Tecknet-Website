@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import EmployeeSidebar from '@/components/dashboard/EmployeeSidebar';
 import TicketStats from '@/components/dashboard/TicketStats';
 import TicketTable from '@/components/dashboard/TicketTable';
 import AppLinkCard from '@/components/dashboard/AppLinkCard';
+import CreateTicketModal from '@/components/dashboard/CreateTicketModal';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from 'lucide-react';
@@ -13,6 +14,7 @@ import { ticketApi, appLinkApi, ApplicationLink, Ticket } from '@/lib/api';
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
   // Fetch tickets
   const { 
@@ -115,12 +117,18 @@ const EmployeeDashboard = () => {
           <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Employee Dashboard</h1>
             <div className="mt-3 sm:mt-0 sm:ml-4">
-              <Button className="inline-flex items-center">
+              <Button className="inline-flex items-center" onClick={() => setIsTicketModalOpen(true)}>
                 <PlusIcon className="mr-2 h-4 w-4" />
                 New Ticket
               </Button>
             </div>
           </div>
+          
+          {/* Ticket creation modal */}
+          <CreateTicketModal 
+            isOpen={isTicketModalOpen} 
+            onClose={() => setIsTicketModalOpen(false)}
+          />
 
           {/* Application Links */}
           <div className="mt-6">
