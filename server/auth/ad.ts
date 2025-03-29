@@ -12,7 +12,7 @@ const execPromise = promisify(exec);
 const LDAP_SERVER = "Grp-4-AD.tecknet.ca";
 const LDAP_PORT = 389;
 
-// AD authentication using LDAP-like approach
+// AD authentication using LDAP
 export async function authenticateWithAD(username: string, password: string): Promise<{
   success: boolean;
   user?: {
@@ -29,97 +29,93 @@ export async function authenticateWithAD(username: string, password: string): Pr
     // Check if the provided username contains domain
     const usernameOnly = username.includes('@') ? username.split('@')[0] : username;
     
-    // Special handling for ashish user
-    if (usernameOnly === "ashish") {
-      console.log(`[AD DEBUG] Special handling for ashish user`);
-      if (password === "asdf123" || password === "Password1") {
-        console.log(`[AD DEBUG] Authentication successful for ashish user`);
+    // Format username for LDAP authentication
+    const ldapUsername = usernameOnly.includes('@') ? usernameOnly : `${usernameOnly}@tecknet.ca`;
+    console.log(`[AD DEBUG] LDAP authentication for ${ldapUsername}`);
+    
+    // PRODUCTION: Use actual LDAP authentication
+    try {
+      // Use the ldapsearch command to validate credentials against the AD server
+      const ldapCommand = `ldapsearch -x -H ldap://${LDAP_SERVER}:${LDAP_PORT} -D "${ldapUsername}" -w "${password}" -b "dc=tecknet,dc=ca" -s sub "(sAMAccountName=${usernameOnly})" displayName mail`;
+      
+      console.log(`[AD DEBUG] Executing LDAP authentication command`);
+      const { stdout, stderr } = await execPromise(ldapCommand);
+      
+      if (stderr && stderr.includes('Invalid credentials')) {
+        console.log(`[AD DEBUG] LDAP authentication failed: Invalid credentials`);
         return {
-          success: true,
-          user: {
-            username: "ashish",
-            email: "ashish@tecknet.ca",
-            fullName: "Ashish Shrestha"
-          }
+          success: false,
+          error: "Invalid AD credentials"
         };
       }
-    }
-    
-    // OPTION 1: Allow any username with asdf123 password (for testing)
-    if (password === "asdf123") {
-      let firstName, lastName, fullName;
       
-      if (usernameOnly.includes('.')) {
-        [firstName, lastName] = usernameOnly.split('.');
-        const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-        const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
-        fullName = `${capitalizedFirstName} ${capitalizedLastName}`;
-      } else {
-        firstName = usernameOnly;
-        const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-        fullName = capitalizedFirstName;
+      // Parse the LDAP results to extract user information
+      console.log(`[AD DEBUG] LDAP authentication successful for: ${usernameOnly}`);
+      
+      // Extract user details from LDAP response
+      let email = `${usernameOnly}@tecknet.ca`; // Default
+      let fullName = usernameOnly;
+      
+      // Extract email from LDAP results
+      const mailMatch = stdout.match(/mail: (.+)$/m);
+      if (mailMatch && mailMatch[1]) {
+        email = mailMatch[1].trim();
       }
       
-      console.log(`[AD DEBUG] Authentication successful for test user: ${usernameOnly}`);
+      // Extract display name from LDAP results
+      const displayNameMatch = stdout.match(/displayName: (.+)$/m);
+      if (displayNameMatch && displayNameMatch[1]) {
+        fullName = displayNameMatch[1].trim();
+      }
+      
       return {
         success: true,
         user: {
           username: usernameOnly,
-          email: `${usernameOnly}@tecknet.ca`,
+          email: email,
           fullName: fullName
         }
       };
-    }
-    
-    // Try to authenticate using LDAP via Python script
-    try {
-      // Format for LDAP authentication
-      const ldapUsername = usernameOnly.includes('@') ? usernameOnly : `${usernameOnly}@tecknet.ca`;
-      console.log(`[AD DEBUG] Testing LDAP authentication for ${ldapUsername}`);
-      
-      // Use actual LDAP authentication here
-      // For now, falling back to test credentials
-      
     } catch (ldapError) {
       console.error(`[AD DEBUG] LDAP authentication error:`, ldapError);
-      // Continue with other authentication methods
+      
+      // DEVELOPMENT MODE ONLY: For testing in development environment without AD
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[AD DEBUG] Using development fallback authentication`);
+        
+        // Development-only test case
+        if (password === "asdf123") {
+          let firstName, lastName, fullName;
+          
+          if (usernameOnly.includes('.')) {
+            [firstName, lastName] = usernameOnly.split('.');
+            const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+            const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+            fullName = `${capitalizedFirstName} ${capitalizedLastName}`;
+          } else {
+            firstName = usernameOnly;
+            const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+            fullName = capitalizedFirstName;
+          }
+          
+          console.log(`[AD DEBUG] Development authentication successful for: ${usernameOnly}`);
+          return {
+            success: true,
+            user: {
+              username: usernameOnly,
+              email: `${usernameOnly}@tecknet.ca`,
+              fullName: fullName
+            }
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        error: "LDAP Authentication failed",
+        networkError: true
+      };
     }
-    
-    // Fallback test users
-    if (username === "john.doe" && password === "password123") {
-      return {
-        success: true,
-        user: {
-          username: "john.doe",
-          email: "john.doe@tecknet.ca",
-          fullName: "John Doe"
-        }
-      };
-    } else if (username === "jane.smith" && password === "password123") {
-      return {
-        success: true,
-        user: {
-          username: "jane.smith",
-          email: "jane.smith@tecknet.ca",
-          fullName: "Jane Smith"
-        }
-      };
-    } else if (username === "admin" && password === "admin123") {
-      return {
-        success: true,
-        user: {
-          username: "admin",
-          email: "admin@tecknet.ca",
-          fullName: "Admin User"
-        }
-      };
-    }
-    
-    console.log(`[AD DEBUG] Authentication failed for: ${username}`);
-    return {
-      success: false,
-      error: "Invalid AD credentials"
-    };
   } catch (error) {
     console.error(`[AD DEBUG] Authentication error for ${username}:`, error);
     return {

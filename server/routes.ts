@@ -5,6 +5,7 @@ import * as localAuth from "./auth/local";
 import * as adAuth from "./auth/ad";
 import * as customerAuth from "./auth/customer";
 import * as zammadController from "./controllers/zammad-controller";
+import { zammadService } from "./services/zammad";
 import session from "express-session";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
