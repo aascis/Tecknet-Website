@@ -118,7 +118,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/tickets/:id", zammadController.updateTicket);
   
   // Test endpoint without auth for ticket creation
-  app.post("/api/tickets-test", zammadController.createTicket);
+  app.post("/api/tickets-test", (req: Request, res: Response) => {
+    console.log('Test ticket creation endpoint called');
+    
+    // Add test user data to session for testing
+    if (!req.session) {
+      req.session = {} as any;
+    }
+    
+    // Create a temporary test user
+    const testUser = {
+      id: 999,
+      email: 'customer@example.com',
+      fullName: 'Test Customer',
+      username: 'testcustomer',
+      role: 'customer'
+    };
+    
+    // Attach to session
+    req.session.user = testUser;
+    req.session.isAuthenticated = true;
+    
+    console.log('Added test user to session:', testUser);
+    
+    // Forward to the ticket controller
+    return zammadController.createTicket(req, res);
+  });
   
   // Legacy ticket routes (can be removed once Zammad integration is complete)
   app.get("/api/local-tickets", async (req: Request, res: Response) => {

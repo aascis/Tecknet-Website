@@ -85,16 +85,21 @@ class ZammadService {
   async getTicketsByCustomer(email: string): Promise<any[]> {
     try {
       // First, we need to find the customer by email
-      const searchResult = await this.request(`/api/v1/users/search?query=${encodeURIComponent(email)}`);
+      console.log(`Looking up tickets for customer email: ${email}`);
+      const searchResult = await this.request(`/users/search?query=${encodeURIComponent(email)}`);
       
       if (!searchResult || !searchResult.length) {
+        console.log(`No customer found with email: ${email}`);
         return []; // No customer found with this email
       }
       
       const customer = searchResult[0];
+      console.log(`Found customer with ID: ${customer.id}`);
       
       // Get tickets for this customer
-      const tickets = await this.request(`/api/v1/tickets/search?query=customer.id:${customer.id}`);
+      console.log(`Searching tickets for customer ID: ${customer.id}`);
+      const tickets = await this.request(`/tickets/search?query=customer.id:${customer.id}`);
+      console.log(`Found ${tickets?.length || 0} tickets`);
       
       return tickets || [];
     } catch (error) {
@@ -105,7 +110,8 @@ class ZammadService {
   
   // Get a specific ticket by ID
   async getTicket(ticketId: string): Promise<any> {
-    return await this.request(`/api/v1/tickets/${ticketId}`);
+    console.log(`Getting ticket with ID: ${ticketId}`);
+    return await this.request(`/tickets/${ticketId}`);
   }
   
   // Create a new ticket in Zammad
@@ -127,12 +133,12 @@ class ZammadService {
       customer_id: customerId
     };
     
-    return await this.request('/api/v1/tickets', 'POST', ticketPayload);
+    return await this.request('/tickets', 'POST', ticketPayload);
   }
   
   // Update an existing ticket
   async updateTicket(ticketId: string, ticketData: any): Promise<any> {
-    return await this.request(`/api/v1/tickets/${ticketId}`, 'PUT', ticketData);
+    return await this.request(`/tickets/${ticketId}`, 'PUT', ticketData);
   }
   
   // Find or create a customer in Zammad
@@ -142,14 +148,14 @@ class ZammadService {
   }): Promise<any> {
     try {
       // Search for the customer
-      const searchResult = await this.request(`/api/v1/users/search?query=${encodeURIComponent(userData.email)}`);
+      const searchResult = await this.request(`/users/search?query=${encodeURIComponent(userData.email)}`);
       
       if (searchResult && searchResult.length > 0) {
         return searchResult[0]; // Customer exists
       }
       
       // Create a new customer
-      const newCustomer = await this.request('/api/v1/users', 'POST', {
+      const newCustomer = await this.request('/users', 'POST', {
         email: userData.email,
         firstname: userData.name.split(' ')[0] || '',
         lastname: userData.name.split(' ').slice(1).join(' ') || '',
