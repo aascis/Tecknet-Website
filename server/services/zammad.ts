@@ -144,24 +144,35 @@ class ZammadService {
   // Find or create a customer in Zammad
   async findOrCreateCustomer(userData: {
     email: string;
-    name: string;
+    firstname?: string;
+    lastname?: string;
+    organization?: string;
+    phone?: string;
   }): Promise<any> {
     try {
+      console.log('Finding or creating customer with email:', userData.email);
+      
       // Search for the customer
       const searchResult = await this.request(`/users/search?query=${encodeURIComponent(userData.email)}`);
       
       if (searchResult && searchResult.length > 0) {
+        console.log('Customer already exists in Zammad:', searchResult[0]);
         return searchResult[0]; // Customer exists
       }
+      
+      console.log('Creating new customer in Zammad:', userData);
       
       // Create a new customer
       const newCustomer = await this.request('/users', 'POST', {
         email: userData.email,
-        firstname: userData.name.split(' ')[0] || '',
-        lastname: userData.name.split(' ').slice(1).join(' ') || '',
+        firstname: userData.firstname || '',
+        lastname: userData.lastname || '',
+        organization: userData.organization || '',
+        phone: userData.phone || '',
         role_ids: [3] // Customer role in Zammad
       });
       
+      console.log('Customer created in Zammad:', newCustomer);
       return newCustomer;
     } catch (error) {
       console.error(`Error finding or creating customer ${userData.email}:`, error);

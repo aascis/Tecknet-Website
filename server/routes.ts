@@ -126,13 +126,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session = {} as any;
     }
     
-    // Create a temporary test user
+    // Create a temporary test user with all required fields
     const testUser = {
       id: 999,
       email: 'customer@example.com',
       fullName: 'Test Customer',
       username: 'testcustomer',
-      role: 'customer'
+      role: 'customer' as const,
+      password: 'password123',
+      status: 'active' as const,
+      companyName: 'Test Company',
+      phone: '555-1234',
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     
     // Attach to session

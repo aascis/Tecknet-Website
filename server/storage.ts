@@ -361,5 +361,354 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Database storage implementation
+import { eq, desc, asc, and } from "drizzle-orm";
+import { db } from "./db";
+import session from "express-session";
+import pgSession from "connect-pg-simple";
+
+const PostgresSessionStore = pgSession(session);
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      createTableIfMissing: true,
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    // Ensure default values are set
+    const userData = {
+      ...insertUser,
+      companyName: insertUser.companyName || null,
+      phone: insertUser.phone || null,
+      role: insertUser.role || 'customer',
+      status: insertUser.status || 'pending'
+    };
+    
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    // Add updatedAt timestamp
+    const updateData = {
+      ...userData,
+      updatedAt: new Date()
+    };
+    
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+
+  async getAllPendingUsers(): Promise<User[]> {
+    return db
+      .select()
+      .from(users)
+      .where(eq(users.status, 'pending'));
+  }
+
+  // AD User methods
+  async getADUser(id: number): Promise<ADUser | undefined> {
+    const [user] = await db.select().from(adUsers).where(eq(adUsers.id, id));
+    return user;
+  }
+
+  async getADUserByUsername(username: string): Promise<ADUser | undefined> {
+    const [user] = await db
+      .select()
+      .from(adUsers)
+      .where(eq(adUsers.username, username));
+    return user;
+  }
+
+  async createADUser(insertUser: InsertADUser): Promise<ADUser> {
+    // Ensure default values are set
+    const userData = {
+      ...insertUser,
+      email: insertUser.email || null,
+      fullName: insertUser.fullName || null,
+      role: insertUser.role || 'employee',
+      lastLogin: insertUser.lastLogin || null
+    };
+    
+    const [user] = await db.insert(adUsers).values(userData).returning();
+    return user;
+  }
+
+  async updateADUser(id: number, userData: Partial<ADUser>): Promise<ADUser | undefined> {
+    // Add updatedAt timestamp
+    const updateData = {
+      ...userData,
+      updatedAt: new Date()
+    };
+    
+    const [user] = await db
+      .update(adUsers)
+      .set(updateData)
+      .where(eq(adUsers.id, id))
+      .returning();
+    return user;
+  }
+
+  // Ticket methods
+  async getTicket(id: number): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
+  }
+
+  async getTicketByTicketId(ticketId: string): Promise<Ticket | undefined> {
+    const [ticket] = await db
+      .select()
+      .from(tickets)
+      .where(eq(tickets.ticketId, ticketId));
+    return ticket;
+  }
+
+  async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
+    const ticketIdPrefix = insertTicket.userId ? 'CS-' : 'TK-';
+    const ticketId = insertTicket.ticketId || `${ticketIdPrefix}${nanoid(5)}`;
+    
+    // Ensure default values are set
+    const ticketData = {
+      ...insertTicket,
+      ticketId,
+      status: insertTicket.status || 'open',
+      priority: insertTicket.priority || 'medium',
+      userId: insertTicket.userId || null,
+      adUserId: insertTicket.adUserId || null,
+      assignedTo: insertTicket.assignedTo || null
+    };
+    
+    const [ticket] = await db
+      .insert(tickets)
+      .values(ticketData)
+      .returning();
+    return ticket;
+  }
+
+  async updateTicket(id: number, ticketData: Partial<Ticket>): Promise<Ticket | undefined> {
+    // Add updatedAt and lastUpdated timestamps
+    const updateData = {
+      ...ticketData,
+      updatedAt: new Date(),
+      lastUpdated: new Date()
+    };
+    
+    const [ticket] = await db
+      .update(tickets)
+      .set(updateData)
+      .where(eq(tickets.id, id))
+      .returning();
+    return ticket;
+  }
+
+  async getTicketsByUserId(userId: number): Promise<Ticket[]> {
+    return db
+      .select()
+      .from(tickets)
+      .where(eq(tickets.userId, userId))
+      .orderBy(desc(tickets.createdAt));
+  }
+
+  async getTicketsByADUserId(adUserId: number): Promise<Ticket[]> {
+    return db
+      .select()
+      .from(tickets)
+      .where(
+        and(
+          eq(tickets.adUserId, adUserId),
+          eq(tickets.assignedTo, adUserId)
+        )
+      )
+      .orderBy(desc(tickets.createdAt));
+  }
+
+  async getAllTickets(): Promise<Ticket[]> {
+    return db
+      .select()
+      .from(tickets)
+      .orderBy(desc(tickets.createdAt));
+  }
+
+  // Subscription methods
+  async getSubscription(id: number): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.id, id));
+    return subscription;
+  }
+
+  async getSubscriptionsByUserId(userId: number): Promise<Subscription[]> {
+    return db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId))
+      .orderBy(asc(subscriptions.renewalDate));
+  }
+
+  async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    // Ensure default values are set
+    const subscriptionData = {
+      ...insertSubscription,
+      description: insertSubscription.description || null,
+      renewalDate: insertSubscription.renewalDate || null,
+      licenseType: insertSubscription.licenseType || null
+    };
+    
+    const [subscription] = await db
+      .insert(subscriptions)
+      .values(subscriptionData)
+      .returning();
+    return subscription;
+  }
+
+  async updateSubscription(id: number, subscriptionData: Partial<Subscription>): Promise<Subscription | undefined> {
+    // Add updatedAt timestamp
+    const updateData = {
+      ...subscriptionData,
+      updatedAt: new Date()
+    };
+    
+    const [subscription] = await db
+      .update(subscriptions)
+      .set(updateData)
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  // Application Link methods
+  async getApplicationLink(id: number): Promise<ApplicationLink | undefined> {
+    const [link] = await db
+      .select()
+      .from(applicationLinks)
+      .where(eq(applicationLinks.id, id));
+    return link;
+  }
+
+  async getAllApplicationLinks(): Promise<ApplicationLink[]> {
+    return db
+      .select()
+      .from(applicationLinks)
+      .where(eq(applicationLinks.isActive, true))
+      .orderBy(asc(applicationLinks.order));
+  }
+
+  async createApplicationLink(insertApplicationLink: InsertApplicationLink): Promise<ApplicationLink> {
+    // Ensure default values are set
+    const linkData = {
+      ...insertApplicationLink,
+      description: insertApplicationLink.description || null,
+      isActive: insertApplicationLink.isActive !== undefined ? insertApplicationLink.isActive : true,
+      order: insertApplicationLink.order || 0
+    };
+    
+    const [link] = await db
+      .insert(applicationLinks)
+      .values(linkData)
+      .returning();
+    return link;
+  }
+
+  async updateApplicationLink(id: number, applicationLinkData: Partial<ApplicationLink>): Promise<ApplicationLink | undefined> {
+    const [link] = await db
+      .update(applicationLinks)
+      .set(applicationLinkData)
+      .where(eq(applicationLinks.id, id))
+      .returning();
+    return link;
+  }
+  
+  async clearApplicationLinks(): Promise<void> {
+    await db.delete(applicationLinks);
+  }
+  
+  async initializeAndGetApplicationLinks(): Promise<ApplicationLink[]> {
+    // Check if links exist
+    const existingLinks = await db.select().from(applicationLinks);
+    
+    if (existingLinks.length === 0) {
+      // Initialize with default links
+      const links: InsertApplicationLink[] = [
+        {
+          name: "Prometheus",
+          url: "https://prometheus.tecknet.ca",
+          description: "Monitoring and alerting system",
+          icon: "bar-chart-2",
+          isActive: true,
+          order: 1
+        },
+        {
+          name: "Wazuh",
+          url: "https://wazuh.tecknet.ca",
+          description: "Security information and event management",
+          icon: "shield",
+          isActive: true,
+          order: 2
+        },
+        {
+          name: "Calendar",
+          url: "https://calendar.tecknet.ca",
+          description: "Company-wide calendar and scheduling",
+          icon: "calendar",
+          isActive: true,
+          order: 3
+        },
+        {
+          name: "Documentation",
+          url: "https://docs.tecknet.ca",
+          description: "Product and internal documentation",
+          icon: "file-text",
+          isActive: true,
+          order: 4
+        }
+      ];
+      
+      for (const link of links) {
+        await this.createApplicationLink(link);
+      }
+    }
+    
+    return this.getAllApplicationLinks();
+  }
+}
+
 // Export a single instance of the storage
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
